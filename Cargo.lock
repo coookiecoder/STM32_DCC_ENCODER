@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "STM32_DCC_DECODER"
+name = "STM32_DCC_ENCODER"
 version = "1.0.0"
 dependencies = [
  "cortex-m",
