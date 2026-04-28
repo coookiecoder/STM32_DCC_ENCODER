@@ -12,7 +12,7 @@ build_firmware:
   stage: build
   script:
     - cargo build --release --target thumbv7em-none-eabihf
-    - cargo build --debug --target thumbv7em-none-eabihf
+    - cargo build --target thumbv7em-none-eabihf
   artifacts:
     paths:
       - target/thumbv7em-none-eabihf/release/STM32_DCC_ENCODER
