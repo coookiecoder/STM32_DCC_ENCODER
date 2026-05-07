@@ -8,7 +8,6 @@ use panic_halt;
 use stm32f4xx_hal as hal;
 
 use hal::pac;
-use hal::pac::interrupt;
 
 use hal::prelude::_stm32f4xx_hal_rcc_RccExt;
 use hal::prelude::_stm32f4xx_hal_gpio_GpioExt;
@@ -16,13 +15,8 @@ use hal::prelude::_fugit_RateExtU32;
 
 use hal::rcc::Config;
 
-use hal::timer::Timer;
-use hal::timer::TimerExt;
-use hal::timer::Event;
-
-use hal::Listen;
-
-use cortex_m::peripheral::NVIC;
+use hal::hal_02::digital::v2::OutputPin;
+use cortex_m::asm::delay;
 
 pub fn fake_exit() -> ! {
     loop {
@@ -55,35 +49,52 @@ fn main() -> ! {
     let onboard_button = _gpio_a.pa0.into_pull_up_input();
     let mut onboard_led = _gpio_c.pc13.into_push_pull_output();
 
-    let mut timer2 = _dp.TIM2.counter_hz(&mut rcc);
-    timer2.start(10.kHz()).expect("Failed to start TIM2");
-    timer2.listen(Event::Update);
+    let mut output_pin = _gpio_a.pa1.into_push_pull_output();
 
-    unsafe { NVIC::unmask(pac::Interrupt::TIM2); }
+    let dcc_data:[u8; 6] = [0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00];
 
     loop {
         if onboard_button.is_low() {
             onboard_led.set_low();
-        } else {
+            send_data(&mut output_pin, &dcc_data);
             onboard_led.set_high();
+        } else {
+            cortex_m::asm::nop();
         }
     }
 }
 
-const TICKS_100US: u32 = 8400 - 1;
-const TICKS_58US: u32 = 4872 - 1;
+const CLK_HZ: u32 = 84_000_000;
+const ONE_HALF_PERIOD: u32 = 58 * (CLK_HZ / 1_000_000);
+const ZERO_HALF_PERIOD: u32 = 100 * (CLK_HZ / 1_000_000);
 
-#[interrupt]
-fn TIM2() {
-    let tim2 = unsafe { &*pac::TIM2::ptr() };
-
-    tim2.sr().modify(|_, w| w.uif().clear_bit());
-
-    let should_use_long_delay = true;
-
-    if should_use_long_delay {
-        tim2.arr().write(|w| unsafe { w.bits(TICKS_100US) });
-    } else {
-        tim2.arr().write(|w| unsafe { w.bits(TICKS_58US) });
+fn send_data<P: OutputPin>(pin: &mut P, dcc_data: &[u8; 6]) {
+    for _ in 0..20 {
+        send_bit(pin, true);
     }
+
+    send_bit(pin, false);
+
+    for (i, byte) in dcc_data.iter().enumerate() {
+        for bit in (0..8).rev() {
+            let b = (byte >> bit) & 1 == 1;
+            send_bit(pin, b);
+        }
+
+        if i == dcc_data.len() - 1 {
+            send_bit(pin, true);
+        } else {
+            send_bit(pin, false);
+        }
+    }
+}
+
+fn send_bit<P: OutputPin>(pin: &mut P, bit: bool) {
+    let cycles = if bit { ONE_HALF_PERIOD } else { ZERO_HALF_PERIOD };
+
+    pin.set_high().ok();
+    delay(cycles);
+
+    pin.set_low().ok();
+    delay(cycles);
 }
