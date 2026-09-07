@@ -20,7 +20,7 @@ pub fn delay_us(dwt: &DWT, time_us: u32) {
 }
 
 pub fn send_data<P: OutputPin> (pin: &mut P, dwt: &DWT, data: &[u8; DATA_SIZE]) {
-    for preamble in 0..14 {
+    for _preamble in 0..14 {
         send_one(pin, dwt);
     }
 
@@ -40,14 +40,14 @@ pub fn send_data<P: OutputPin> (pin: &mut P, dwt: &DWT, data: &[u8; DATA_SIZE]) 
 }
 
 pub fn send_reset<P: OutputPin> (pin: &mut P, dwt: &DWT) {
-    for preamble in 0..14 {
+    for _preamble in 0..14 {
         send_one(pin, dwt);
     }
 
-    for byte in 0..3 {
+    for _byte in 0..3 {
         send_zero(pin, dwt);
 
-        for bit in 0..8 {
+        for _bit in 0..8 {
             send_zero(pin, dwt);
         }
     }
@@ -56,25 +56,25 @@ pub fn send_reset<P: OutputPin> (pin: &mut P, dwt: &DWT) {
 }
 
 pub fn send_idle<P: OutputPin> (pin: &mut P, dwt: &DWT) {
-    for preamble in 0..14 {
+    for _preamble in 0..14 {
         send_one(pin, dwt);
     }
 
     send_zero(pin, dwt);
 
-    for bit in 0..8 {
+    for _bit in 0..8 {
         send_one(pin, dwt);
     }
 
     send_zero(pin, dwt);
 
-    for bit in 0..8 {
+    for _bit in 0..8 {
         send_zero(pin, dwt);
     }
 
     send_zero(pin, dwt);
 
-    for bit in 0..8 {
+    for _bit in 0..8 {
         send_one(pin, dwt);
     }
 
@@ -82,17 +82,17 @@ pub fn send_idle<P: OutputPin> (pin: &mut P, dwt: &DWT) {
 }
 
 pub fn send_stop<P: OutputPin> (pin: &mut P, dwt: &DWT, fast: bool) {
-    for preamble in 0..14 {
+    for _preamble in 0..14 {
         send_one(pin, dwt);
     }
 
     send_zero(pin, dwt);
 
-    for bit in 0..8 {
+    for _bit in 0..8 {
         send_zero(pin, dwt);
     }
 
-    for byte in 0..2 {
+    for _byte in 0..2 {
         send_zero(pin, dwt);
 
         {
