@@ -19,7 +19,7 @@ pub fn delay_us(dwt: &DWT, time_us: u32) {
     }
 }
 
-pub fn send_data<P: OutputPin> (pin: &mut P, dwt: &DWT, data: &[u8; DATA_SIZE]) {
+pub fn send_data<P: OutputPin> (pin: &mut P, dwt: &DWT, data: &[u8]) {
     for _preamble in 0..14 {
         send_one(pin, dwt);
     }
@@ -40,78 +40,31 @@ pub fn send_data<P: OutputPin> (pin: &mut P, dwt: &DWT, data: &[u8; DATA_SIZE]) 
 }
 
 pub fn send_reset<P: OutputPin> (pin: &mut P, dwt: &DWT) {
-    for _preamble in 0..14 {
-        send_one(pin, dwt);
-    }
+    let data: [u8; 3] = [0x00, 0x00, 0x00];
 
-    for _byte in 0..3 {
-        send_zero(pin, dwt);
-
-        for _bit in 0..8 {
-            send_zero(pin, dwt);
-        }
-    }
-
-    send_one(pin, dwt);
+    send_data(pin, dwt, &data);
 }
 
 pub fn send_idle<P: OutputPin> (pin: &mut P, dwt: &DWT) {
-    for _preamble in 0..14 {
-        send_one(pin, dwt);
-    }
+    let data: [u8; 3] = [0xFF, 0x00, 0xFF];
 
-    send_zero(pin, dwt);
-
-    for _bit in 0..8 {
-        send_one(pin, dwt);
-    }
-
-    send_zero(pin, dwt);
-
-    for _bit in 0..8 {
-        send_zero(pin, dwt);
-    }
-
-    send_zero(pin, dwt);
-
-    for _bit in 0..8 {
-        send_one(pin, dwt);
-    }
-
-    send_one(pin, dwt);
+    send_data(pin, dwt, &data);
 }
 
-pub fn send_stop<P: OutputPin> (pin: &mut P, dwt: &DWT, fast: bool) {
-    for _preamble in 0..14 {
-        send_one(pin, dwt);
+pub fn send_stop<P: OutputPin>(pin: &mut P, dwt: &DWT, fast: bool) {
+    if fast {
+        // Fast/Emergency stop: S = 1
+        // Byte 2: 01110001 (0x71)
+        let data: [u8; 3] = [0x00, 0x71, 0x71];
+
+        send_data(pin, dwt, &data);
+    } else {
+        // Normal stop (respect momentum): S = 0
+        // Byte 2: 01110000 (0x70)
+        let data: [u8; 3] = [0x00, 0x70, 0x70];
+
+        send_data(pin, dwt, &data);
     }
-
-    send_zero(pin, dwt);
-
-    for _bit in 0..8 {
-        send_zero(pin, dwt);
-    }
-
-    for _byte in 0..2 {
-        send_zero(pin, dwt);
-
-        {
-            send_zero(pin, dwt);
-            send_one(pin, dwt);
-            send_zero(pin, dwt);
-            send_zero(pin, dwt);
-            send_zero(pin, dwt);
-            send_zero(pin, dwt);
-            send_zero(pin, dwt);
-            if fast {
-                send_one(pin, dwt);
-            } else {
-                send_zero(pin, dwt);
-            }
-        }
-    }
-
-    send_one(pin, dwt);
 }
 
 pub fn send_one<P: OutputPin> (pin: &mut P, dwt: &DWT) {
